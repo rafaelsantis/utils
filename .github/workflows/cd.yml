@@ -1,0 +1,85 @@
+name: build-test-deploy
+# Changed 'on' to enable this workflow to be called from other workflows
+on:
+  workflow_call:
+    # Introduced 'inputs' to define parameters that can be passed when calling this workflow
+    inputs:
+      node-version:
+        description: 'Node version'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+      # Modified to use the node-version from the workflow inputs
+      - name: use node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install and build
+        run: |
+          npm install
+          npm run build --if-present
+
+      - name: Run tests
+        run: |
+          echo ${{ matrix.node-version }}
+          echo "Hello, world!" ${{ matrix.node-version }} > output_${{ matrix.node-version }}.txt
+
+      - name: Upload build artifacts (optional)
+        uses: actions/upload-artifact@v2
+        with:
+          name: output_${{ matrix.node-version }}.txt
+          path: './output_${{ matrix.node-version }}.txt' # Customize this path based on your build output location
+
+      - name: Criar release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: 'v${{ github.sha }}' # Use semantic versioning and sha
+          release_name: 'Release ${{ github.sha }}'
+          body: "**Changes:**\n\n* ${{ github.ref }}\n\n**Builds:**\n*"
+          draft: false # Publique a release automaticamente (ou defina como `true` para rascunho)
+          prerelease: false # Marque como pré-lançamento (opcional)
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: output_${{ matrix.node-version }}.txt
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Download release tag URL
+        uses: rest-actions/http-client@v2
+        with:
+          url: ${{ github.api.repos/${{ github.repository }}/releases/tags/v${{ github.sha }}}
+          method: GET
+          headers: { 'Authorization': 'token ${{ secrets.GITHUB_TOKEN }}' }
+          output: 'uploadUrl'
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.download-actual-upload-url.outputs }}
+          asset_path: ./output_${{ matrix.node-version }}.txt
+          asset_name: output_${{ matrix.node-version }}.txt
+          asset_content_type: text/plain # Specify content type if needed
