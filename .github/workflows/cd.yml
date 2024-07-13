@@ -32,27 +32,9 @@ jobs:
           echo ${{ matrix.node-version }}
           echo "Hello, world!" ${{ matrix.node-version }} > output_${{ matrix.node-version }}.txt
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to Releases
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: 'v${{ github.sha }}'
-          release_name: Release ${{ github.sha }}
-          body: |
-            **Changes:**
-            ${{ steps.changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./output_${{ matrix.node-version }}.txt
-          asset_name: output_${{ matrix.node-version }}.txt
-          asset_content_type: text/plain # Specify content type if needed
+          artifacts: '*.txt'
+          tag: v1.0.${{ github.run_number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
