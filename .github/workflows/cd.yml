@@ -1,4 +1,4 @@
-name: build-test-deploy
+name: create-release-upload-file
 # Changed 'on' to enable this workflow to be called from other workflows
 on:
   workflow_call:
@@ -29,8 +29,8 @@ jobs:
 
       - name: Run tests
         run: |
-          echo ${{ matrix.node-version }}
-          echo "Hello, world!" ${{ matrix.node-version }} > output_${{ matrix.node-version }}.txt
+          echo ${{ inputs.node-version }}
+          echo "Hello, world!" ${{ inputs.node-version }} > output_${{ inputs.node-version }}.txt
 
       - name: Push to Releases
         uses: ncipollo/release-action@v1
