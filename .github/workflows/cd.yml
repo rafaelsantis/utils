@@ -32,54 +32,21 @@ jobs:
           echo ${{ matrix.node-version }}
           echo "Hello, world!" ${{ matrix.node-version }} > output_${{ matrix.node-version }}.txt
 
-      - name: Upload build artifacts (optional)
-        uses: actions/upload-artifact@v2
-        with:
-          name: output_${{ matrix.node-version }}.txt
-          path: './output_${{ matrix.node-version }}.txt' # Customize this path based on your build output location
-
-      - name: Criar release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: 'v${{ github.sha }}' # Use semantic versioning and sha
-          release_name: 'Release ${{ github.sha }}'
-          body: "**Changes:**\n\n* ${{ github.ref }}\n\n**Builds:**\n*"
-          draft: false # Publique a release automaticamente (ou defina como `true` para rascunho)
-          prerelease: false # Marque como pré-lançamento (opcional)
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: output_${{ matrix.node-version }}.txt
-
       - name: Create Release
-        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body: |
+            **Changes:**
+            ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
 
-      - name: Download release tag URL
-        uses: rest-actions/http-client@v2
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
         with:
-          url: ${{ github.api.repos/${{ github.repository }}/releases/tags/v${{ github.sha }}}
-          method: GET
-          headers: { 'Authorization': 'token ${{ secrets.GITHUB_TOKEN }}' }
-          output: 'uploadUrl'
-
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.download-actual-upload-url.outputs }}
-          asset_path: ./output_${{ matrix.node-version }}.txt
-          asset_name: output_${{ matrix.node-version }}.txt
-          asset_content_type: text/plain # Specify content type if needed
+          name: output_${{ matrix.node-version }}.txt
+          path: './output_${{ matrix.node-version }}.txt'
